@@ -1,6 +1,7 @@
 import Control.Monad
 import Data.Array
 import Data.Maybe
+import Data.List       (isPrefixOf)
 import Data.List.Split (splitOn)
 import Graphics.UI.Gtk
 import System.Environment (getArgs)
@@ -16,7 +17,6 @@ main = do
 
   -- Setup data
   let ldata = map (mkRow sep) ls
---  let rows  = length ldata
   let cols  = maximum $ map arraySize ldata
 
   -- Start GUI
@@ -30,7 +30,6 @@ main = do
   widgetShowAll win
   mainGUI
 
-genData n m = map (\r -> listArray (1,m) [(r,c) | c <- [1..m]]) [1..n]
 
 mkRow :: String -> String -> Array Int String
 mkRow sep s = listArray (1,n) ss where
@@ -38,6 +37,7 @@ mkRow sep s = listArray (1,n) ss where
     ss = splitOn sep s
 
 arraySize a = let (l,h) = bounds a in 1 + h - l
+
 
 createTable cols tableData = do
   store <- listStoreNew tableData
@@ -49,10 +49,11 @@ createTable cols tableData = do
     col <- createSortedColumn store sorted i (show i) $ \tr -> [cellText := (tr!i)]
     treeViewAppendColumn view col
 
---  treeSortableSetSortColumnId store 1 SortAscending
-
   treeViewSetEnableSearch view True
-  treeViewSetSearchEqualFunc view (Just eqf)
+  treeViewSetSearchEqualFunc view $ Just $ \str iter -> do
+    iter <- treeModelSortConvertIterToChildIter sorted iter
+    row <- treeModelGetRow store iter
+    return $ any (isPrefixOf str) $ elems row
 
   return (store, view)
   where
