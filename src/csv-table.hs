@@ -1,23 +1,28 @@
+import qualified Args
+
 import Control.Monad
 import Data.Array
 import Data.Maybe
 import Data.List       (isPrefixOf)
 import Data.List.Split (splitOn)
 import Graphics.UI.Gtk
-import System.Environment (getArgs)
+--import System.Environment (getArgs)
 
 defaultSep = "\t"
 
 main = do
 
   -- Get args etc
-  args <- getArgs
+  args <- Args.getArgs
+  let sep = Args.lookupDefault "-d" defaultSep args
+  let header = isJust $ Args.lookup "-h" args
+
   ls <- lines `fmap` getContents
-  let sep = maybe defaultSep id $ listToMaybe args
 
   -- Parse data
-  let ldata = map (mkRow sep) ls
-  let cols  = maximum $ map arraySize ldata
+  let ldata  = map (mkRow sep) $ if header then tail ls else ls
+  let cols   = maximum $ map arraySize ldata
+  let cnames = if header then mkRow sep (head ls) else listArray (1,cols) $ map show [1..cols]
 
   -- Start GUI
   initGUI
@@ -27,7 +32,7 @@ main = do
   sw <- scrolledWindowNew Nothing Nothing
   set win [containerChild := sw]
 
-  (store,view) <- createTable cols ldata
+  (store,view) <- createTable cols cnames ldata
   set sw [containerChild := view]
 
   widgetShowAll win
@@ -45,14 +50,16 @@ ixDefault def a i = if l <= i && i <= h then a!i else def where
     (l,h) = bounds a
 
 
-createTable cols tableData = do
+createTable cols columnNames tableData = do
   store <- listStoreNew tableData
   sorted <- treeModelSortNewWithModel store
   view <- treeViewNewWithModel sorted
 
   -- Add each column
   forM_ [1..cols] $ \i -> do
-    col <- createSortedColumn store sorted i (show i) $ \tr -> [cellText := ixDefault [] tr i]
+    let columnName = ixDefault [] columnNames i
+    col <- createSortedColumn store sorted i columnName
+           $ \tr -> [cellText := ixDefault [] tr i]
     treeViewAppendColumn view col
 
   treeViewSetEnableSearch view True
