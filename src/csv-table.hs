@@ -1,4 +1,5 @@
 import qualified Args
+import ParseCSV
 
 import Control.Monad
 import Data.Array
@@ -6,7 +7,8 @@ import Data.Maybe
 import Data.List       (isPrefixOf)
 import Data.List.Split (splitOn)
 import Graphics.UI.Gtk
---import System.Environment (getArgs)
+import System.Exit (exitFailure)
+
 
 defaultSep = "\t"
 
@@ -14,15 +16,17 @@ main = do
 
   -- Get args etc
   args <- Args.getArgs
-  let sep = Args.lookupDefault "-d" defaultSep args
+  let sep = head $ Args.lookupDefault "-d" defaultSep args
   let header = isJust $ Args.lookup "-h" args
 
-  ls <- lines `fmap` getContents
+  -- Read data
+  input <- getContents
 
   -- Parse data
-  let ldata  = map (mkRow sep) $ if header then tail ls else ls
+  records <- parseDataOrExit [] sep input
+  let ldata  = map mkRow $ if header then tail records else records
   let cols   = maximum $ map arraySize ldata
-  let cnames = if header then mkRow sep (head ls) else listArray (1,cols) $ map show [1..cols]
+  let cnames = if header then mkRow (head records) else listArray (1,cols) $ map show [1..cols]
 
   -- Start GUI
   initGUI
@@ -39,10 +43,19 @@ main = do
   mainGUI
 
 
-mkRow :: String -> String -> Array Int String
-mkRow sep s = listArray (1,n) ss where
-    n  = length ss
-    ss = splitOn sep s
+parseDataOrExit sourceName sep input = 
+    case parseSV sourceName sep input of
+      Left err -> do
+        print err
+        exitFailure
+        return undefined
+      Right rs -> return rs
+
+
+mkRow :: [String] -> Array Int String
+mkRow vs = listArray (1,n) vs where
+    n  = length vs
+
 
 arraySize a = let (l,h) = bounds a in 1 + h - l
 
