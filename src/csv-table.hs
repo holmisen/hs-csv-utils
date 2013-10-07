@@ -67,6 +67,7 @@ createTable cols columnNames tableData = do
   store <- listStoreNew tableData
   sorted <- treeModelSortNewWithModel store
   view <- treeViewNewWithModel sorted
+  view `set` [treeViewEnableGridLines := TreeViewGridLinesHorizontal]
 
   -- Add each column
   forM_ [1..cols] $ \i -> do
@@ -90,6 +91,7 @@ createSortedColumn store sortedStore colId title f = do
   treeViewColumnSetResizable col True
 
   cell <- cellRendererTextNew
+  cell `set` [cellTextEditable := True]
   cellLayoutPackStart col cell False
   cellLayoutSetAttributes col cell store f
 
