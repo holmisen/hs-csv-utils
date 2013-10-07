@@ -3,6 +3,7 @@ import ParseCSV
 
 import Control.Monad
 import Data.Array
+import Data.Array.IO
 import Data.Maybe
 import Data.List       (isPrefixOf)
 import Data.List.Split (splitOn)
@@ -56,6 +57,8 @@ mkRow :: [String] -> Array Int String
 mkRow vs = listArray (1,n) vs where
     n  = length vs
 
+mkRowIO :: [String] -> IO (IOArray Int String)
+mkRowIO vs = newListArray (1,n) vs where n = length vs
 
 arraySize a = let (l,h) = bounds a in 1 + h - l
 
@@ -90,6 +93,7 @@ createSortedColumn store sortedStore colId title f = do
   treeViewColumnSetResizable col True
 
   cell <- cellRendererTextNew
+  cell `set` [cellTextEditable := True]
   cellLayoutPackStart col cell False
   cellLayoutSetAttributes col cell store f
 
