@@ -18,9 +18,10 @@ main = do
   args <- Args.getArgs
   let sep = head $ Args.lookupDefault "-d" defaultSep args
   let header = isJust $ Args.lookup "-h" args
-
+  let infile = listToMaybe $ Args.rest args
+  
   -- Read data
-  input <- getContents
+  input <- maybe getContents readFile infile
 
   -- Parse data
   records <- parseDataOrExit [] sep input
@@ -31,6 +32,7 @@ main = do
   -- Start GUI
   initGUI
   win <- windowNew
+  win `set` [windowTitle := maybe "<stdin>" id infile]
   onDestroy win mainQuit
 
   sw <- scrolledWindowNew Nothing Nothing
