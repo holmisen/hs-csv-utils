@@ -11,36 +11,45 @@
 --
 --  * Can NOT handle single quoted values
 --
---  * Can NOT handle double double quotes
---
 
 module ParseCSV
- ( parseSV, parseSVRecord )
+ ( SValue(..), valueToString, parseSV, parseSVRecord )
 where
 
 import Data.Functor.Identity (Identity)
 import Data.List             (delete)
 import Text.Parsec hiding (newline)
 
+data SValue = Quoted String | Bare String
+  deriving (Eq,Ord,Show)
 
-parseSV name sep =
-    fmap removeEmptyRecords . runP records sep name
+
+valueToString (Quoted s) = ['"'] ++ s ++ ['"']
+valueToString (Bare s)   = s
+
+
+parseSV
+  :: SourceName -> Char -> String -> Either ParseError [[SValue]]
+parseSV name sep = fmap removeEmptyRecords . runP records sep name
 
 
 parseSVRecord name sep = runP record sep name
 
 
-value = do
-  s1 <- many spaceSV
-  xs <- try quoted <|> nonQuoted
-  s2 <- many spaceSV
-  return (s1 ++ xs ++ s2)
+quotedChars = concat `fmap` many qtok where
+    qtok = many1 (satisfy (/= '"')) <|> try (string "\"\"")
+
+nonQuotedChars sep = many $ satisfy (`notElem` [sep, '\f', '\n', '\r'])
+
+value =  (Quoted `fmap` try quoted)
+     <|> (Bare `fmap` nonQuoted)
 
 quoted = do
+  many spaceSV
   char '"'
-  xs <- many $ satisfy (`notElem` ['"'])
+  x <- quotedChars
   char '"'
-  return (['"'] ++ xs ++ ['"'])
+  return x
 
 nonQuoted = do
   sep <- getState
@@ -64,4 +73,7 @@ spaceSV = do
     spaceChars = [' ', '\t', '\v']
 
 
-removeEmptyRecords = filter (/= [""])
+removeEmptyRecords = filter (not . emptyRow) where
+    emptyRow [Bare []] = True
+    emptyRow _         = False
+
