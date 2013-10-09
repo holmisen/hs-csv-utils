@@ -1,5 +1,6 @@
 import qualified Args
-import ParseCSV
+import ParseSV
+import Record
 
 import Control.Monad
 import Data.Array
@@ -26,11 +27,11 @@ main = do
 
   -- Parse data
   records <- parseDataOrExit [] sep input
-  let ldata :: [Array Int SValue]
-      ldata  = map mkRow $ if header then tail records else records
-  let cols   = maximum $ map arraySize ldata
+  let ldata :: [Record]
+      ldata  = if header then tail records else records
+  let cols   = maxRecordWidth records
   let cnames :: Array Int String
-      cnames = if header then mkRow (map valueToString $ head records) else listArray (1,cols) $ map show [1..cols]
+      cnames = if header then arrayFromList (map unparseValue $ recordValues $ head records) else listArray (1,cols) $ map show [1..cols]
 
   -- Start GUI
   initGUI
@@ -48,8 +49,9 @@ main = do
   mainGUI
 
 
+parseDataOrExit :: String -> Char -> String -> IO [Record]
 parseDataOrExit sourceName sep input = 
-    case parseSV sourceName sep input of
+    case parseRecords sourceName sep input of
       Left err -> do
         print err
         exitFailure
@@ -60,14 +62,6 @@ parseDataOrExit sourceName sep input =
 mkRow :: [a] -> Array Int a
 mkRow vs = listArray (1,n) vs where
     n  = length vs
-
--- mkRowIO :: [String] -> IO (IOArray Int String)
--- mkRowIO vs = newListArray (1,n) vs where n = length vs
-
-arraySize a = let (l,h) = bounds a in 1 + h - l
-
-ixDefault def a i = if l <= i && i <= h then a!i else def where
-    (l,h) = bounds a
 
 safeIndex a i = if l <= i && i <= h then Just (a!i) else Nothing
     where (l,h) = bounds a
@@ -89,7 +83,7 @@ createTable cols columnNames tableData = do
   treeViewSetSearchEqualFunc view $ Just $ \str iter -> do
     iter <- treeModelSortConvertIterToChildIter sorted iter
     row <- treeModelGetRow store iter
-    return $ any (isPrefixOf str . valueToString) $ elems row
+    return $ any (isPrefixOf str . unparseValue) $ elems row
 
   return (store, view)
 
@@ -113,4 +107,4 @@ createSortedColumn store sortedStore colId title f = do
   return col
 
 
-cellString row = maybe [] valueToString . safeIndex row
+cellString row = maybe [] unparseValue . safeIndex row
