@@ -82,7 +82,7 @@ createTable cols columnNames tableData = do
   forM_ [1..cols] $ \i -> do
     let columnName = ixDefault [] columnNames i
     col <- createSortedColumn store sorted i columnName
-           $ \tr -> [cellText := maybe [] valueToString (safeIndex tr i)]
+           $ \tr -> [cellText := cellString tr i]
     treeViewAppendColumn view col
 
   treeViewSetEnableSearch view True
