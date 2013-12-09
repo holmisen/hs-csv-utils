@@ -28,6 +28,7 @@ valueToString (Quoted s) = ['"'] ++ s ++ ['"']
 valueToString (Bare s)   = s
 
 
+-- | Parse separated value records. Empty records are removed.
 parseSV
   :: SourceName -> Char -> String -> Either ParseError [[SValue]]
 parseSV name sep = fmap removeEmptyRecords . runP records sep name
