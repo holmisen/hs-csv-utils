@@ -43,7 +43,14 @@ main = do
   set win [containerChild := sw]
 
   (store,view) <- createTable cols cnames ldata
-  set sw [containerChild := view]
+
+  set sw [ containerChild := view
+         , scrolledWindowHscrollbarPolicy := PolicyAutomatic
+         , scrolledWindowVscrollbarPolicy := PolicyAutomatic ]
+
+  -- Make sensible default size
+  Requisition reqWidth reqHeight <- widgetSizeRequest view
+  windowSetDefaultSize win reqWidth reqHeight
 
   widgetShowAll win
   mainGUI
