@@ -77,7 +77,8 @@ createTable cols columnNames tableData = do
   store <- listStoreNew tableData -- $ map (fmap valueToString) tableData
   sorted <- treeModelSortNewWithModel store
   view <- treeViewNewWithModel sorted
-  view `set` [treeViewEnableGridLines := TreeViewGridLinesHorizontal]
+--  set view [treeViewEnableGridLines := TreeViewGridLinesHorizontal]
+  set view [treeViewRulesHint := True]
 
   -- Add each column
   forM_ [1..cols] $ \i -> do
@@ -86,6 +87,7 @@ createTable cols columnNames tableData = do
            $ \tr -> [cellText := cellString tr i]
     treeViewAppendColumn view col
 
+  -- Enable searching
   treeViewSetEnableSearch view True
   treeViewSetSearchEqualFunc view $ Just $ \str iter -> do
     iter <- treeModelSortConvertIterToChildIter sorted iter
