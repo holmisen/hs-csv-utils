@@ -3,6 +3,7 @@ import ParseSV
 import Record
 
 import Control.Monad
+import Control.Monad.IO.Class (liftIO)
 import Data.Array
 import Data.Array.IO
 import Data.Maybe
@@ -78,6 +79,7 @@ createTable cols columnNames tableData = do
   sorted <- treeModelSortNewWithModel store
   view <- treeViewNewWithModel sorted
 --  set view [treeViewEnableGridLines := TreeViewGridLinesHorizontal]
+  set view [treeViewHoverSelection := True]
   set view [treeViewRulesHint := True]
 
   -- Add each column
@@ -93,6 +95,18 @@ createTable cols columnNames tableData = do
     iter <- treeModelSortConvertIterToChildIter sorted iter
     row <- treeModelGetRow store iter
     return $ any (isPrefixOf str . unparseValue) $ elems row
+
+  -- -- Enable multiple selection
+  -- sel <- treeViewGetSelection view
+  -- treeSelectionSetMode sel SelectionMultiple
+
+  -- -- Enable copy
+  -- -- TODO
+  -- -- Must disable treeViewHoverSelection when implementing this.
+  -- on view keyPressEvent $ tryEvent $ do
+  --   [Control] <- eventModifier
+  --   "c" <- eventKeyName
+  --   liftIO $ putStrLn "Ctrl-C"
 
   return (store, view)
 
