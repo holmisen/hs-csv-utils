@@ -1,6 +1,7 @@
 import qualified Args
 import ParseSV
 import Record
+import Utils
 
 import Control.Monad
 import Control.Monad.IO.Class (liftIO)
@@ -10,18 +11,18 @@ import Data.Maybe
 import Data.List       (isPrefixOf)
 import Data.List.Split (splitOn)
 import Graphics.UI.Gtk
-import System.Exit (exitFailure)
+import System.Exit     (exitFailure)
 
-
-defaultSep = "\t"
 
 main = do
 
   -- Get args etc
   args <- Args.getArgs
-  let sep = head $ Args.lookupDefault "-d" defaultSep args
   let header = isJust $ Args.lookup "-h" args
   let infile = listToMaybe $ Args.rest args
+  let sep    = fmap head (Args.lookup "-d" args)
+               <|> join (fmap sepFromFileExtension infile)
+               <|> defaultSep
   
   -- Read data
   input <- maybe getContents readFile infile
@@ -131,3 +132,4 @@ createSortedColumn store sortedStore colId title f = do
 
 
 cellString row = maybe [] unparseValue . safeIndex row
+
